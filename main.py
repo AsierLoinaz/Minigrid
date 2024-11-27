@@ -37,8 +37,18 @@ policy_kwargs = dict(
     features_extractor_kwargs=dict(features_dim=128),
 )
 
-env = gym.make("MiniGrid-ObstructedMaze-1Dlhb-v0", render_mode="rgb_array")
+
+# Environment name and good completions to advance to the next env
+envList = {"MiniGrid-ObstructedMaze-1Dl-v0" : 10,
+           "MiniGrid-ObstructedMaze-1Dlh-v0": 15,
+           "MiniGrid-ObstructedMaze-1Dlhb-v0": 25,
+           "MiniGrid-ObstructedMaze-2Dlhb-v1": 50,
+           "MiniGrid-ObstructedMaze-Full-v1": 100}
+
+env = gym.make("MiniGrid-ObstructedMaze-1Dl-v0", render_mode="rgb_array")
 env = ImgObsWrapper(env)
 
-model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
-model.learn(int(2e5))
+
+
+model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1, learning_rate=0.001)
+model.learn(int(1e5), progress_bar=True)
