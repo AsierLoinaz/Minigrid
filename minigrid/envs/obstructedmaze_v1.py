@@ -97,3 +97,7 @@ class ObstructedMaze_Full_V1(ObstructedMazeEnv):
             box.contains = obj
             obj = box
         self.place_in_room(i, j, obj)
+
+
+
+
