@@ -90,7 +90,7 @@ def objective(trial):
 
     try:
         # Entrenar el modelo
-        algo.learn(total_timesteps=1e5)
+        algo.learn(total_timesteps=int(1e5))
         # Evaluar el modelo
         avg_reward, _ = evaluate_policy(algo, env, n_episodes=10)
         return avg_reward
@@ -125,7 +125,7 @@ elif best_params["algo_name"] == "DQN":
 
 # Guardar modelo entrenado
 checkpoint_callback = CheckpointCallback(save_freq=10_000, save_path=checkpoint_dir, name_prefix=best_params["algo_name"].lower())
-model.learn(total_timesteps=1e6, callback=checkpoint_callback)
+model.learn(total_timesteps=int(1e6), callback=checkpoint_callback)
 model.save(f"{best_params['algo_name'].lower()}_minigrid_model")
 env.close()
 
