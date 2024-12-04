@@ -9,6 +9,8 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+import os
+from optuna.samplers import TPESampler
 
 # Parámetros generales
 env_name = "MiniGrid-ObstructedMaze-1Dl-v0"
@@ -65,6 +67,9 @@ def evaluate_policy(model, env, n_episodes=10):
         total_steps += episode_steps
     avg_reward = total_reward / n_episodes
     avg_steps = total_steps / n_episodes
+
+    print(f"Evaluación: Recompensa promedio: {avg_reward:.2f}, Pasos promedio: {avg_steps:.2f}")
+
     return avg_reward, avg_steps
 
 # Objetivo para Optuna
@@ -73,8 +78,8 @@ def objective(trial):
     algo_name = trial.suggest_categorical("algo_name", ["PPO", "A2C", "DQN"])
     lr = trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_categorical("batch_size", [32, 64, 128])
-    n_epochs = trial.suggest_categorical("n_epochs", [10, 50, 100])
-    gamma = trial.suggest_float("gamma", 0.8, 0.99, step=0.05)
+    n_epochs = 10
+    gamma = trial.suggest_float("gamma", 0.8, 0.95, step=0.05)
     clip_range = trial.suggest_float("clip_range", 0.0, 0.5, step=0.05)
 
     # Crear entorno con wrappers
@@ -90,9 +95,9 @@ def objective(trial):
 
     try:
         # Entrenar el modelo
-        algo.learn(total_timesteps=int(1e5))
+        algo.learn(total_timesteps=int(5e4))
         # Evaluar el modelo
-        avg_reward, _ = evaluate_policy(algo, env, n_episodes=10)
+        avg_reward, _ = evaluate_policy(algo, env, n_episodes=150)
         return avg_reward
     except Exception as e:
         return -float('inf')  # Penalización si algo falla
@@ -100,6 +105,16 @@ def objective(trial):
 # Crear estudio de Optuna
 sampler = optuna.samplers.TPESampler(seed=42)
 study = optuna.create_study(direction="maximize", sampler=sampler)
+
+os.system("mkdir -p optuna/")
+
+# Optuna study configuration
+storage_file = f"sqlite:///optuna/optuna.db"
+study_name = "ObstructedMazeSimplest"
+full_study_dir_path = f"asignment1/optuna/{study_name}"
+tpe_sampler = TPESampler(seed=1234) # For reproducibility
+study = optuna.create_study(sampler=tpe_sampler, direction='maximize', study_name=study_name, storage=storage_file, load_if_exists=True)
+n_trials = 300 # Normally 50 or 100 at least
 
 # Optimizar hiperparámetros
 study.optimize(objective, n_trials=n_trials)
@@ -125,7 +140,7 @@ elif best_params["algo_name"] == "DQN":
 
 # Guardar modelo entrenado
 checkpoint_callback = CheckpointCallback(save_freq=10_000, save_path=checkpoint_dir, name_prefix=best_params["algo_name"].lower())
-model.learn(total_timesteps=int(1e6), callback=checkpoint_callback)
+model.learn(total_timesteps=int(1e4), callback=checkpoint_callback)
 model.save(f"{best_params['algo_name'].lower()}_minigrid_model")
 env.close()
 
