@@ -57,7 +57,7 @@ env_list = [
 env_df = pd.DataFrame(env_list)
 
 
-env = gym.make("MiniGrid-ObstructedMaze-1Dl-v0", render_mode="rgb_array")
+env = gym.make("MiniGrid-ObstructedMaze-1Dl-v0", render_mode="human")
 
 env = ImgObsWrapper(env)
 # Crear modelo con logging habilitado

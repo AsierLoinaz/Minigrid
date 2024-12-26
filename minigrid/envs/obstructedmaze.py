@@ -3,7 +3,7 @@ from __future__ import annotations
 from minigrid.core.constants import COLOR_NAMES, DIR_TO_VEC
 from minigrid.core.mission import MissionSpace
 from minigrid.core.roomgrid import RoomGrid
-from minigrid.core.world_object import Ball, Box, Key
+from minigrid.core.world_object import Ball, Box, Goal, Key
 
 
 class ObstructedMazeEnv(RoomGrid):
@@ -91,8 +91,9 @@ class ObstructedMazeEnv(RoomGrid):
             max_steps = 4 * num_rooms_visited * room_size**2
 
         mission_space = MissionSpace(
-            mission_func=self._gen_mission,
-            ordered_placeholders=[[COLOR_NAMES[0]]],
+            mission_func=self._gen_mission#,
+            #* REMOVED FROM ORIGINAL ENV
+            # ordered_placeholders=[[COLOR_NAMES[0]]], 
         )
         super().__init__(
             mission_space=mission_space,
@@ -101,12 +102,17 @@ class ObstructedMazeEnv(RoomGrid):
             num_cols=num_cols,
             max_steps=max_steps,
             **kwargs,
-        )
-        self.obj = Ball()  # initialize the obj attribute, that will be changed later on
+        )            
+        #* REMOVED FROM ORIGINAL ENV
+        #self.obj = Ball()  # initialize the obj attribute, that will be changed later on
+
+        self.obj = Goal()  # obj is now a Goal, not a ball
 
     @staticmethod
-    def _gen_mission(color: str):
-        return f"pick up the {color} ball"
+    def _gen_mission():#color: str):
+        # return f"pick up the {color} ball" #* old mission
+        return "use the key to open the door and then get to the goal" # new mission
+
 
     def _gen_grid(self, width, height):
         super()._gen_grid(width, height)
@@ -120,17 +126,19 @@ class ObstructedMazeEnv(RoomGrid):
         # Define the color of boxes in which keys are hidden
         self.box_color = COLOR_NAMES[2]
 
-        self.mission = "pick up the %s ball" % self.ball_to_find_color
+        # self.mission = "pick up the %s ball" % self.ball_to_find_color
+        self.mission = "use the key to open the door and then get to the goal"
 
-    def step(self, action):
-        obs, reward, terminated, truncated, info = super().step(action)
+#* no need to overwrite the step function anymore
+    # def step(self, action):
+    #     obs, reward, terminated, truncated, info = super().step(action)
 
-        if action == self.actions.pickup:
-            if self.carrying and self.carrying == self.obj:
-                reward = self._reward()
-                terminated = True
+    #     if action == self.actions.pickup:
+    #         if self.carrying and self.carrying == self.obj:
+    #             reward = self._reward()
+    #             terminated = True
 
-        return obs, reward, terminated, truncated, info
+    #     return obs, reward, terminated, truncated, info
 
     def add_door(
         self,
@@ -190,8 +198,9 @@ class ObstructedMaze_1Dlhb(ObstructedMazeEnv):
             key_in_box=self.key_in_box,
             blocked=self.blocked,
         )
+        self.put_obj(Goal(), width - 2, height - 2)
 
-        self.obj, _ = self.add_object(1, 0, "ball", color=self.ball_to_find_color)
+        # self.obj, _ = self.add_object(1, 0, "ball", color=self.ball_to_find_color)
         self.place_agent(0, 0)
 
 
@@ -250,8 +259,10 @@ class ObstructedMaze_Full(ObstructedMazeEnv):
         ball_room = self._rand_elem(corners)
 
         self.obj, _ = self.add_object(
-            ball_room[0], ball_room[1], "ball", color=self.ball_to_find_color
+            ball_room[0], ball_room[1], "goal"
         )
+        # self.put_obj(Goal(), width - 2, height - 2)
+
         self.place_agent(*self.agent_room)
 
 

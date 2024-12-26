@@ -12,6 +12,8 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import EvalCallback
 from minigrid.wrappers import ImgObsWrapper
 import numpy as np
+from minigrid.manual_control import ManualControl
+
 
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 
@@ -69,13 +71,31 @@ model_dir = "models/curriculum_learning/"
 os.makedirs(log_dir, exist_ok=True)
 os.makedirs(model_dir, exist_ok=True)
 
+"""
+ - `MiniGrid-DoorKey-5x5-v0`
+    - `MiniGrid-DoorKey-6x6-v0`
+    - `MiniGrid-DoorKey-8x8-v0`
+    - `MiniGrid-DoorKey-16x16-v0`"""
+
 # Lista de entornos con pasos y umbrales
+# env_list = [
+#     {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 5e5, "completions": 5, "threshold": 0.85},
+#     {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
+#     {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
+#     {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
+#     {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
+# ]
 env_list = [
-    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 5e5, "completions": 5, "threshold": 0.85},
+    {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 10, "threshold": 0.9},
+    {"environment": "MiniGrid-DoorKey-6x6-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
+    {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
+    {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
+    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
     {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
     {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
     {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
-    {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
+    {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95}
+    
 ]
 
 # Crear un DataFrame para visualizar los entornos
@@ -111,8 +131,17 @@ for idx, row in env_df.iterrows():
 
     # Configurar el entorno con Monitor
     env = gym.make(env_name, render_mode="rgb_array")
+    # if env_name == "MiniGrid-ObstructedMaze-1Dl-v0":
+    #     env = gym.make(env_name, render_mode="human")
+
     env = ImgObsWrapper(env)
     env = Monitor(env, log_dir)
+
+
+    # enable manual control for testing
+    # manual_control = ManualControl(env, seed=42)
+    # manual_control.start()
+ 
 
     # Cargar el modelo previo si existe, o crear uno nuevo
     if idx == 0:
@@ -120,7 +149,7 @@ for idx, row in env_df.iterrows():
             "CnnPolicy",
             env,
             policy_kwargs=policy_kwargs,
-            verbose=0,
+            verbose=1,
             learning_rate=0.001,
             tensorboard_log=log_dir,
         )
