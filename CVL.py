@@ -86,11 +86,11 @@ os.makedirs(model_dir, exist_ok=True)
 #     {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
 # ]
 env_list = [
-    {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 10, "threshold": 0.95},
-    {"environment": "MiniGrid-DoorKey-6x6-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.85},
-    {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
-    {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 20, "threshold": 0.8},
-    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 3e6, "completions": 10, "threshold": 0.95},
+    {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 100, "threshold": 0.9},
+    {"environment": "MiniGrid-DoorKey-6x6-v0", "n_steps": 7e5, "completions": 150, "threshold": 0.9},
+    {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 150, "threshold": 0.85},
+    {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 50, "threshold": 0.8},
+    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
     {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
     {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
     {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
@@ -105,23 +105,13 @@ env_df = env_df.reset_index(drop=True)
 
 
 # Función para calcular la recompensa promedio de los últimos episodios
-def calculate_average_reward(log_dir, num_episodes, env_name):
-    rewards_file = os.path.join(log_dir, "monitor.csv")
+def calculate_average_reward(directory, num_episodes):
+    rewards_file = os.path.join(directory, "monitor.csv")
     if not os.path.exists(rewards_file):
         return -float("inf")
-    
-    # Leemos el archivo de logs
     data = pd.read_csv(rewards_file, skiprows=1)
-    
-    # Filtramos las recompensas solo para el entorno actual
-    data["env_name"] = data["env_name"].apply(lambda x: x.split(":")[0])  # Se asume que "env_name" contiene el nombre del entorno en el formato "env_name:..." o similar.
-    data = data[data["env_name"] == env_name]
-    
-    # Si no hay suficientes episodios del entorno actual, devolvemos -inf
     if len(data) < num_episodes:
         return -float("inf")
-    
-    # Calculamos la recompensa promedio de los últimos "num_episodes" episodios
     return data["r"][-num_episodes:].mean()
 
 # Proceso de Curriculum Learning
@@ -145,7 +135,10 @@ for idx, row in env_df.iterrows():
     #     env = gym.make(env_name, render_mode="human")
 
     env = ImgObsWrapper(env)
-    env = Monitor(env, log_dir)
+    env_dir =  os.path.join(log_dir, env_name)
+    os.makedirs(env_dir, exist_ok=True)
+
+    env = Monitor(env, env_dir)
 
 
     # enable manual control for testing
@@ -155,7 +148,7 @@ for idx, row in env_df.iterrows():
  
 
     # Cargar el modelo previo si existe, o crear uno nuevo
-    tensorboard_log = f"{log_dir}/{model_type}_{env_name}"
+    tensorboard_log = f"{log_dir}/tensorboard/{model_type}_{env_name}"
 
     if idx == 0:
         model = MODEL(  
@@ -172,7 +165,7 @@ for idx, row in env_df.iterrows():
         previous_model_path = os.path.join(previous_env_model_dir, f"{previous_env_name.replace('-', '_')}_{model_type}_final.zip")
         print(f"Cargando modelo previo: {previous_model_path}")
         model = MODEL.load(previous_model_path, env=env)
-        model.tensorboard_log = f"{log_dir}/{model_type}_{env_name}"
+        model.tensorboard_log = f"{log_dir}/tensorboard/{model_type}_{env_name}"
         average_reward = 0
 
     # Callback para checkpoints cada 20k pasos
@@ -183,7 +176,7 @@ for idx, row in env_df.iterrows():
     )
 
     # Callback para early stopping
-    early_stopping_callback = EarlyStoppingCallback(log_dir, completions, threshold)
+    early_stopping_callback = EarlyStoppingCallback(env_dir, completions, threshold)
 
     # Entrenar hasta superar el threshold
     average_reward = -float("inf")
@@ -198,7 +191,7 @@ for idx, row in env_df.iterrows():
         print(f"Entrenamiento acumulado: {total_steps} steps")
 
         # Calcular la recompensa promedio
-        average_reward = calculate_average_reward(log_dir, completions, env_name)
+        average_reward = calculate_average_reward(env_dir, completions)
         print(f"Recompensa promedio de las últimas {completions} iteraciones: {average_reward}")
 
     # Guardar el modelo final
