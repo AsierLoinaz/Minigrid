@@ -78,25 +78,25 @@ os.makedirs(model_dir, exist_ok=True)
     - `MiniGrid-DoorKey-16x16-v0`"""
 
 # Lista de entornos con pasos y umbrales
-env_list = [
-    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 5e5, "completions": 5, "threshold": 0.85},
-    {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
-    {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
-    {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
-    {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
-]
 # env_list = [
-#     {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 10, "threshold": 0.9},
-#     {"environment": "MiniGrid-DoorKey-6x6-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
-#     {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
-#     {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
-#     {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
+#     {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 5e5, "completions": 5, "threshold": 0.85},
 #     {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
 #     {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
 #     {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
-#     {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95}
-    
+#     {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
 # ]
+env_list = [
+    {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 10, "threshold": 0.95},
+    {"environment": "MiniGrid-DoorKey-6x6-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.85},
+    {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
+    {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 20, "threshold": 0.8},
+    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 3e6, "completions": 10, "threshold": 0.95},
+    {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
+    {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
+    {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
+    {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.7}
+    
+]
 
 # Crear un DataFrame para visualizar los entornos
 env_df = pd.DataFrame(env_list)
@@ -105,13 +105,23 @@ env_df = env_df.reset_index(drop=True)
 
 
 # Función para calcular la recompensa promedio de los últimos episodios
-def calculate_average_reward(log_dir, num_episodes):
+def calculate_average_reward(log_dir, num_episodes, env_name):
     rewards_file = os.path.join(log_dir, "monitor.csv")
     if not os.path.exists(rewards_file):
         return -float("inf")
+    
+    # Leemos el archivo de logs
     data = pd.read_csv(rewards_file, skiprows=1)
+    
+    # Filtramos las recompensas solo para el entorno actual
+    data["env_name"] = data["env_name"].apply(lambda x: x.split(":")[0])  # Se asume que "env_name" contiene el nombre del entorno en el formato "env_name:..." o similar.
+    data = data[data["env_name"] == env_name]
+    
+    # Si no hay suficientes episodios del entorno actual, devolvemos -inf
     if len(data) < num_episodes:
         return -float("inf")
+    
+    # Calculamos la recompensa promedio de los últimos "num_episodes" episodios
     return data["r"][-num_episodes:].mean()
 
 # Proceso de Curriculum Learning
@@ -145,14 +155,16 @@ for idx, row in env_df.iterrows():
  
 
     # Cargar el modelo previo si existe, o crear uno nuevo
+    tensorboard_log = f"{log_dir}/{model_type}_{env_name}"
+
     if idx == 0:
         model = MODEL(  
             "CnnPolicy",
             env,
             policy_kwargs=policy_kwargs,
-            verbose=1,
+            verbose=0,
             learning_rate=0.001,
-            tensorboard_log=log_dir,
+            tensorboard_log=tensorboard_log,
         )
     else:
         previous_env_name = env_df.loc[idx - 1, "environment"]
@@ -160,6 +172,8 @@ for idx, row in env_df.iterrows():
         previous_model_path = os.path.join(previous_env_model_dir, f"{previous_env_name.replace('-', '_')}_{model_type}_final.zip")
         print(f"Cargando modelo previo: {previous_model_path}")
         model = MODEL.load(previous_model_path, env=env)
+        model.tensorboard_log = f"{log_dir}/{model_type}_{env_name}"
+        average_reward = 0
 
     # Callback para checkpoints cada 20k pasos
     checkpoint_callback = CheckpointCallback(
@@ -184,7 +198,7 @@ for idx, row in env_df.iterrows():
         print(f"Entrenamiento acumulado: {total_steps} steps")
 
         # Calcular la recompensa promedio
-        average_reward = calculate_average_reward(log_dir, completions)
+        average_reward = calculate_average_reward(log_dir, completions, env_name)
         print(f"Recompensa promedio de las últimas {completions} iteraciones: {average_reward}")
 
     # Guardar el modelo final
