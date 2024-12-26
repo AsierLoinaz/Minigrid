@@ -86,10 +86,10 @@ os.makedirs(model_dir, exist_ok=True)
 #     {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
 # ]
 env_list = [
-    {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 100, "threshold": 0.9},
+    # {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 100, "threshold": 0.9},
     {"environment": "MiniGrid-DoorKey-6x6-v0", "n_steps": 7e5, "completions": 150, "threshold": 0.9},
     {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 150, "threshold": 0.85},
-    {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 50, "threshold": 0.8},
+    # {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 50, "threshold": 0.8},
     {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
     {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
     {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
