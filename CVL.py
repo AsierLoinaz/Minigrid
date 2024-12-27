@@ -86,14 +86,14 @@ os.makedirs(model_dir, exist_ok=True)
 #     {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
 # ]
 env_list = [
-    # {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 100, "threshold": 0.9},
+    {"environment": "MiniGrid-DoorKey-5x5-v0", "n_steps": 5e5, "completions": 100, "threshold": 0.9},
     {"environment": "MiniGrid-DoorKey-6x6-v0", "n_steps": 7e5, "completions": 150, "threshold": 0.9},
-    {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 150, "threshold": 0.85},
+    {"environment": "MiniGrid-DoorKey-8x8-v0", "n_steps": 1e6, "completions": 200, "threshold": 0.85},
     # {"environment": "MiniGrid-DoorKey-16x16-v0", "n_steps": 2e6, "completions": 50, "threshold": 0.8},
-    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 3e6, "completions": 100, "threshold": 0.95},
-    {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 7e5, "completions": 15, "threshold": 0.8},
-    {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 1e6, "completions": 25, "threshold": 0.85},
-    {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 50, "threshold": 0.75},
+    {"environment": "MiniGrid-ObstructedMaze-1Dl-v0", "n_steps": 1e6, "completions": 150, "threshold": 0.75},
+    {"environment": "MiniGrid-ObstructedMaze-1Dlh-v0", "n_steps": 1e5, "completions": 200, "threshold": 0.8},
+    {"environment": "MiniGrid-ObstructedMaze-1Dlhb-v0", "n_steps": 2e6, "completions": 150, "threshold": 0.85},
+    {"environment": "MiniGrid-ObstructedMaze-2Dlhb-v1", "n_steps": 2e6, "completions": 100, "threshold": 0.75},
     {"environment": "MiniGrid-ObstructedMaze-Full-v1", "n_steps": 3e6, "completions": 100, "threshold": 0.7}
     
 ]
@@ -115,8 +115,8 @@ def calculate_average_reward(directory, num_episodes):
     return data["r"][-num_episodes:].mean()
 
 # Proceso de Curriculum Learning
-model_type = "ppo"  # Cambia esto a "ppo", "dqn", etc., según el modelo que uses.
-MODEL = PPO
+model_type = "a2c"  # Cambia esto a "ppo", "dqn", etc., según el modelo que uses.
+MODEL = A2C
 for idx, row in env_df.iterrows():
     env_name = row["environment"]
     completions = row["completions"]
